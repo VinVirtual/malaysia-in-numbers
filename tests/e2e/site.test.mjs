@@ -147,14 +147,14 @@ const CONTRAST = `(sels) => {
 }`;
 
 test('text colours meet WCAG AA contrast (4.5:1) on their backgrounds in both themes', async () => {
-  const sel = ['.lead', '.eyebrow', '.card-ms', '.card-what', '.stamp', '.delta-up', '.delta-down', '.delta-flat', '.topic-strip a', '.rel-what', '.colophon p'];
+  const sel = ['.lead', '.dateline', '.dateline .hero-ms', '.card-ms', '.card-what', '.stamp', '.delta-up', '.delta-down', '.delta-flat', '.topic-strip a', '.rel-what', '.colophon p'];
   for (const scheme of ['light', 'dark']) {
     const { page, ctx } = await open('index.html', { colorScheme: scheme, reducedMotion: 'reduce' });
     const ratios = await page.evaluate(`(${CONTRAST})(${JSON.stringify(sel)})`);
     for (const [s, r] of ratios) assert.ok(r >= 4.5, `${scheme} ${s}: ${r.toFixed(2)}:1`);
     await ctx.close();
     const topic = await open('fuel/index.html', { colorScheme: scheme, reducedMotion: 'reduce' });
-    const r2 = await topic.page.evaluate(`(${CONTRAST})(${JSON.stringify(['.fig-ms', '.fig-source', '.stamps dt', '.hl-period', '.legend li', '.table-wrap summary'])})`);
+    const r2 = await topic.page.evaluate(`(${CONTRAST})(${JSON.stringify(['.fig-ms', '.fig-source', '.stamps dt', '.hl-period', '.legend li', '.table-wrap summary', '.record dt', '.pager-dir'])})`);
     for (const [s, r] of r2) assert.ok(r >= 4.5, `${scheme} fuel ${s}: ${r.toFixed(2)}:1`);
     await topic.ctx.close();
   }

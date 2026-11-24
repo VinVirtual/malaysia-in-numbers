@@ -23,7 +23,6 @@ export function renderTopic({ topic, file, head, charts, base }) {
   const c = head.change;
   return html`<article class="topic topic-${topic.slug}">
 <header class="topic-head">
-  <p class="eyebrow">Indicator ${String(idx + 1).padStart(2, '0')} of ${String(TOPICS.length).padStart(2, '0')} · ${ds.period === 'week' ? 'weekly' : ds.period === 'month' ? 'monthly' : ds.period === 'quarter' ? 'quarterly' : 'yearly'} data</p>
   <h1>${topic.title}</h1>
   <p class="topic-ms" lang="ms">${topic.titleMs}</p>
   <p class="dek">${topic.dek}</p>
@@ -61,8 +60,8 @@ ${charts.map((ch) => figure({ id: `${topic.slug}-${ch.chart.id}`, spec: ch.spec,
   </dl>
 </section>
 <nav class="pager" aria-label="More indicators">
-  <a class="pager-prev" href="${localHref(`${base}${prev.slug}/index.html`)}"><span class="pager-dir">Previous</span> ${prev.title}</a>
-  <a class="pager-next" href="${localHref(`${base}${next.slug}/index.html`)}"><span class="pager-dir">Next</span> ${next.title}</a>
+  <a class="pager-prev" href="${localHref(`${base}${prev.slug}/index.html`)}"><span class="pager-dir"><span aria-hidden="true">←</span> Previous</span> ${prev.title}</a>
+  <a class="pager-next" href="${localHref(`${base}${next.slug}/index.html`)}"><span class="pager-dir">Next <span aria-hidden="true">→</span></span> ${next.title}</a>
 </nav>
 </article>`;
 }

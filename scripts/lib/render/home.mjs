@@ -28,12 +28,11 @@ export function leadSentences(h) {
   return s;
 }
 
-function card(t, h, file, i) {
+function card(t, h, file) {
   const ds = datasetById(t.dataset);
   const c = h.change;
   return html`<article class="card card-${t.size} card-${t.slug}" aria-labelledby="card-${t.slug}">
-  <p class="card-num" aria-hidden="true">${String(i + 1).padStart(2, '0')}</p>
-  <h2 class="card-title" id="card-${t.slug}"><a href="${localHref(`${t.slug}/index.html`)}">${t.title}</a></h2>
+  <h2 class="card-title" id="card-${t.slug}"><a href="${localHref(`${t.slug}/index.html`)}">${t.title}<svg class="go" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M3 8h9M8.5 4.5 12 8l-3.5 3.5"/></svg></a></h2>
   <p class="card-ms" lang="ms">${t.titleMs}</p>
   <p class="card-figure"><span class="value">${h.valueText}</span>${t.headline.per ? html` <span class="per">${t.headline.per}</span>` : ''}</p>
   <p class="card-what">${t.headline.label} · <time datetime="${h.date}">${h.periodText}</time></p>
@@ -53,7 +52,7 @@ function ticker(heads) {
 }
 
 function stripes() {
-  // Fourteen stripes, as on the Jalur Gemilang; drawn in the page's own ink, not the flag's colours.
+  // Fourteen stripes, as on the Jalur Gemilang: flat red and paper, the top one red.
   const rows = Array.from({ length: 14 }, (_, i) => html`<rect class="stripe${i % 2 ? ' alt' : ''}" x="0" y="${i * 10}" width="100" height="10" data-i="${i}"/>`);
   return html`<svg class="stripes" viewBox="0 0 100 140" preserveAspectRatio="none" aria-hidden="true" focusable="false">${rows}</svg>`;
 }
@@ -65,15 +64,14 @@ export function renderHome({ heads, files, releases, builtAt }) {
   return html`<section class="hero" aria-labelledby="hero-title">
   ${stripes()}
   <div class="hero-text">
-    <p class="eyebrow"><span class="dot" aria-hidden="true"></span> Edition of <time datetime="${ed.iso}">${ed.long}</time></p>
     <h1 id="hero-title" class="hero-title"><span class="ht-a">Malaysia</span> <span class="ht-b">in Numbers</span></h1>
-    <p class="hero-ms" lang="ms">Malaysia dalam Angka: angka rasmi terkini, disemak setiap hari.</p>
+    <p class="dateline"><span>Edition of <time datetime="${ed.iso}">${ed.long}</time></span><span class="hero-ms" lang="ms">Malaysia dalam Angka: angka rasmi terkini, disemak setiap hari.</span></p>
     <p class="lead">${lead.join(' ')}</p>
   </div>
 </section>
 ${ticker(heads)}
 <section class="bento" aria-label="Indicators">
-  ${TOPICS.map((t, i) => (heads[t.slug] ? card(t, heads[t.slug], files[t.dataset], i) : ''))}
+  ${TOPICS.map((t) => (heads[t.slug] ? card(t, heads[t.slug], files[t.dataset]) : ''))}
 </section>
 <section class="releases" aria-labelledby="releases-title">
   <div class="releases-head">

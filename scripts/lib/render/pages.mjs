@@ -11,7 +11,6 @@ export function renderMethod({ files, base }) {
   const spacing = LIMITS.hostIntervalMs['api.data.gov.my'] / 1000;
   return html`<article class="prose">
 <header class="page-head">
-  <p class="eyebrow">How this site works</p>
   <h1>Method</h1>
   <p class="topic-ms" lang="ms">Kaedah</p>
   <p class="dek">Every figure here is fetched from the official open data API, checked, stored in the project’s history and drawn without smoothing, filling or seasonal adjustment.</p>
@@ -64,7 +63,6 @@ export function renderMethod({ files, base }) {
 export function renderLimits() {
   return html`<article class="prose">
 <header class="page-head">
-  <p class="eyebrow">Before you quote a number</p>
   <h1>Limits</h1>
   <p class="topic-ms" lang="ms">Had dan kekangan</p>
   <p class="dek">What this site does not do, and where its numbers can mislead.</p>
@@ -89,7 +87,6 @@ export function renderLog({ releases, base }) {
   const rows = [...releases].reverse();
   return html`<article class="prose">
 <header class="page-head">
-  <p class="eyebrow">Every change this site has seen</p>
   <h1>Release log</h1>
   <p class="topic-ms" lang="ms">Log keluaran</p>
   <p class="dek">One line each time a run found new or revised values. The first lines are the first fetch of each dataset’s history.</p>
@@ -112,7 +109,6 @@ export function renderLog({ releases, base }) {
 export function render404() {
   return html`<article class="prose">
 <header class="page-head">
-  <p class="eyebrow">404</p>
   <h1>No figure here</h1>
   <p class="dek">That page does not exist. The <a href="${localHref('/index.html')}">indicators</a> are on the front page.</p>
 </header>

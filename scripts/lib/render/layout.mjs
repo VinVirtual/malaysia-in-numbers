@@ -78,7 +78,7 @@ ${canonical ? html`<link rel="canonical" href="${canonical}">` : ''}
 </header>
 <nav class="topic-strip" aria-label="Indicators">
   <ul>
-    ${TOPICS.map((t, i) => html`<li><a href="${b(`${t.slug}/index.html`)}"${active === t.slug ? html` aria-current="page"` : ''}><span class="num">${String(i + 1).padStart(2, '0')}</span> ${t.title}</a></li>`)}
+    ${TOPICS.map((t) => html`<li><a href="${b(`${t.slug}/index.html`)}"${active === t.slug ? html` aria-current="page"` : ''}>${t.title}</a></li>`)}
   </ul>
 </nav>
 <main id="main" tabindex="-1">
