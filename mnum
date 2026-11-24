@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# malaysia-in-numbers launcher: mnum <command> ...   (run "mnum help" for the list)
+exec node "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/scripts/mnum.mjs" "$@"

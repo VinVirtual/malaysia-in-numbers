@@ -1,0 +1,9 @@
+node_modules/
+.scratch/
+.cache/
+dist/
+*.log
+.DS_Store
+.playwright-cli/
+test-results/
+.wrangler/

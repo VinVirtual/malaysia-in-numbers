@@ -1,0 +1,8 @@
+{"at":"2026-11-24T10:39:20.492Z","id":"fuelprice","data_as_of":"2026-11-19 00:01","last_updated":"2026-11-18 23:59","added":2012,"revised":0,"removed":0}
+{"at":"2026-11-24T10:39:20.510Z","id":"cpi_headline_inflation","data_as_of":"2026-10","last_updated":"2026-11-19 13:09","added":2130,"revised":0,"removed":0}
+{"at":"2026-11-24T10:39:20.522Z","id":"lfs_month","data_as_of":"2026-09","last_updated":"2026-11-11 12:30","added":705,"revised":0,"removed":0}
+{"at":"2026-11-24T10:39:20.530Z","id":"gdp_qtr_real","data_as_of":"2026-Q3","last_updated":"2026-11-18 13:00","added":136,"revised":0,"removed":0}
+{"at":"2026-11-24T10:39:20.536Z","id":"trade_sitc_1d","data_as_of":"2026-09","last_updated":"2026-10-28 12:30","added":282,"revised":0,"removed":0}
+{"at":"2026-11-24T10:39:20.543Z","id":"exchangerates","data_as_of":"2026-10-31 12:00","last_updated":"2026-11-01 02:30","added":852,"revised":0,"removed":0}
+{"at":"2026-11-24T10:39:20.551Z","id":"electricity_consumption","data_as_of":"2026-06-30 23:59","last_updated":"2026-10-08 12:00","added":612,"revised":0,"removed":0}
+{"at":"2026-11-24T10:39:20.558Z","id":"population_malaysia","data_as_of":"2026","last_updated":"2026-07-31 12:00","added":317,"revised":0,"removed":0}

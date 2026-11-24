@@ -1,0 +1,20 @@
+{
+  "name": "malaysia-in-numbers",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A free, self-updating static dashboard of Malaysia's official open data: fuel prices, inflation, jobs, GDP, trade, the ringgit, electricity and population, from api.data.gov.my.",
+  "license": "MIT",
+  "author": "Lashvin Manimaran",
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "fetch": "node scripts/mnum.mjs fetch",
+    "site": "node scripts/mnum.mjs site",
+    "test": "node --test tests/*.test.mjs",
+    "test:e2e": "node --test tests/e2e/*.test.mjs",
+    "capture": "node scripts/capture.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "1.65.1"
+  }
+}

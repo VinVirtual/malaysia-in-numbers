@@ -1,0 +1,158 @@
+# Daily update: ask api.data.gov.my for every dataset, commit what changed, deploy the site
+# to Cloudflare Pages (free; the repository stays private, which GitHub Pages would charge for).
+#
+# Needs two repository secrets (Settings -> Secrets and variables -> Actions):
+#   CLOUDFLARE_ACCOUNT_ID - the Cloudflare account id
+#   CLOUDFLARE_API_TOKEN  - a token with Account > Cloudflare Pages > Edit only
+# Without them the data is still fetched and committed; the deploy step says so and skips.
+# Optional repository variable MNUM_SITE_URL (e.g. https://data.lashvin.com/) sets the
+# absolute URL used in the feeds; without it the default in scripts/lib/config.mjs is used.
+#
+# Jobs and their rights:
+#   fetch  - contents: read. Talks to the API with no write rights and no stored credentials;
+#            hands the data folder on as an artifact and says whether anything changed.
+#   commit - contents: write. Runs only when something changed. Takes only the dataset files
+#            and the release log, validates them, rebases and pushes.
+#   deploy - contents: read. Builds the site from main and uploads it to Cloudflare Pages.
+# Days with no new figures cost one short job (about 3 minutes).
+name: daily
+
+on:
+  schedule:
+    - cron: '23 1 * * *' # 01:23 UTC = 09:23 in Malaysia
+  workflow_dispatch:
+    inputs:
+      deploy_only:
+        description: 'Only rebuild and deploy the site from the committed data'
+        type: boolean
+        required: false
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: daily
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    if: github.event.inputs.deploy_only != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    permissions:
+      contents: read
+    outputs:
+      changed: ${{ steps.fetch.outputs.changed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Unit tests
+        run: npm test
+      - name: Fetch every dataset (one request each, 16 s apart)
+        id: fetch
+        run: node scripts/mnum.mjs fetch
+      - name: Validate and build the site (fails on broken links, inline code or size budget)
+        env:
+          MNUM_SITE_URL: ${{ vars.MNUM_SITE_URL }}
+        run: |
+          node scripts/mnum.mjs check
+          node scripts/mnum.mjs site
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: steps.fetch.outputs.changed == 'true'
+        with:
+          name: data
+          path: |
+            data/series/*.json
+            data/releases.jsonl
+          if-no-files-found: error
+          retention-days: 7
+
+  commit:
+    needs: fetch
+    if: needs.fetch.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write # push data/series/*.json and data/releases.jsonl, nothing else
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: data
+          path: ${{ runner.temp }}/data
+      - name: Take only the data files, validate them, commit and push
+        run: |
+          src="$RUNNER_TEMP/data"
+          if [[ -L "$src" ]]; then echo "artifact is a symlink"; exit 1; fi
+          for f in "$src"/series/*.json; do
+            name="$(basename "$f")"
+            if [[ ! "$name" =~ ^[a-z0-9_]+\.json$ || -L "$f" || ! -f "$f" ]]; then echo "unexpected file: $name"; exit 1; fi
+            cp "$f" "data/series/$name"
+          done
+          if [[ -f "$src/releases.jsonl" && ! -L "$src/releases.jsonl" ]]; then cp "$src/releases.jsonl" data/releases.jsonl; fi
+          node scripts/mnum.mjs check
+          git config user.name "Lashvin Manimaran"
+          git config user.email "190336345+VinVirtual@users.noreply.github.com"
+          git add data/series data/releases.jsonl
+          if git diff --cached --quiet; then echo "nothing new"; exit 0; fi
+          git commit -m "data: update $(date -u +%Y-%m-%d)"
+          git pull --rebase origin main
+          node scripts/mnum.mjs check
+          git push origin HEAD:main
+
+  deploy:
+    needs: [fetch, commit]
+    if: >-
+      always() &&
+      (needs.commit.result == 'success' || github.event.inputs.deploy_only == 'true')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    env:
+      PAGES_PROJECT: malaysia-in-numbers
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+      - name: Validate and build the site from the committed data
+        env:
+          MNUM_SITE_URL: ${{ vars.MNUM_SITE_URL }}
+        run: |
+          node scripts/mnum.mjs check
+          node scripts/mnum.mjs site
+      - name: Check the Cloudflare secrets
+        id: cf
+        env:
+          HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+          HAS_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+        run: |
+          if [[ "$HAS_TOKEN" == "true" && "$HAS_ACCOUNT" == "true" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            msg="Deploy skipped: repository secret CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID is not set. The data was still fetched and committed. See README, Hosting."
+            echo "::warning title=Cloudflare deploy skipped::$msg"
+            echo "$msg" >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Deploy to Cloudflare Pages
+        if: steps.cf.outputs.ready == 'true'
+        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: '4.167.0'
+          command: pages deploy dist --project-name=${{ env.PAGES_PROJECT }} --branch=main --commit-dirty=true
