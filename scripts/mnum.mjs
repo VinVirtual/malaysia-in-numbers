@@ -68,6 +68,9 @@ async function main(argv) {
   if (cmd === 'check') {
     const all = loadAll(dataDir);
     const missing = DATASET_IDS.filter((id) => !all[id]);
+    const seriesDir = path.join(dataDir, 'series');
+    const unknown = fs.existsSync(seriesDir) ? fs.readdirSync(seriesDir).filter((n) => !DATASET_IDS.includes(n.replace(/\.json$/, '')) || !n.endsWith('.json')) : [];
+    if (unknown.length) throw new Error(`unexpected files in data/series: ${unknown.join(', ').slice(0, 200)}`);
     const releases = loadReleases(dataDir);
     say(`${Object.keys(all).length} dataset files valid${missing.length ? `; missing: ${missing.join(', ')}` : ''}; ${releases.length} release log entries`);
     return missing.length ? 1 : 0;
@@ -75,6 +78,8 @@ async function main(argv) {
   if (cmd === 'site') {
     const { buildSite } = await import('./lib/site.mjs');
     const out = opts.out ? path.resolve(opts.out) : path.join(ROOT, 'dist');
+    const rel = path.relative(ROOT, out);
+    if (!/^(dist|\.scratch)(\/|$)/.test(rel.split(path.sep).join('/'))) throw new Error('--out must be dist/ or a folder under .scratch/ (the folder is emptied first)');
     const r = buildSite({ root: ROOT, dataDir, assetsDir: path.join(ROOT, 'assets'), outDir: out, siteUrl: siteUrlFromEnv(), now: new Date() });
     say(`site: ${r.pages} pages, ${r.csv} CSV files, ${(r.bytes / 1024).toFixed(0)} KB in ${path.relative(ROOT, out) || out}`);
     return 0;

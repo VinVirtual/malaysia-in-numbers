@@ -33,7 +33,7 @@ export function renderTopic({ topic, file, head, charts, base }) {
     <p class="hl-label">${topic.headline.label}<span class="hl-ms" lang="ms">${topic.headline.labelMs}</span></p>
     <p class="hl-value"><span class="value">${head.valueText}</span>${topic.headline.per ? html` <span class="per">${topic.headline.per}</span>` : ''}</p>
     <p class="hl-period"><time datetime="${head.date}">${ds.period === 'week' ? `Week from ${head.periodText}` : head.periodLong}</time></p>
-    ${c ? html`<p class="delta delta-${dirWord(c.dir)}"><span class="arrow" aria-hidden="true">${arrow(c.dir)}</span> ${c.text} <span class="vs">${c.vs}</span></p>` : ''}
+    ${c ? html`<p class="delta delta-${dirWord(c.dir)}"><span class="arrow" aria-hidden="true">${arrow(c.dir)}</span> ${c.text} <span class="vs">${c.vs}</span></p>` : html`<p class="delta delta-flat">No earlier figure to compare with</p>`}
   </div>
   <dl class="stamps">
     <div><dt>Data to</dt><dd>${asOfLabel(m.data_as_of)}</dd></div>

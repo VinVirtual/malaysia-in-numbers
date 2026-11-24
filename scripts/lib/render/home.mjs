@@ -37,7 +37,7 @@ function card(t, h, file, i) {
   <p class="card-ms" lang="ms">${t.titleMs}</p>
   <p class="card-figure"><span class="value">${h.valueText}</span>${t.headline.per ? html` <span class="per">${t.headline.per}</span>` : ''}</p>
   <p class="card-what">${t.headline.label} · <time datetime="${h.date}">${h.periodText}</time></p>
-  ${c ? html`<p class="delta delta-${dirWord(c.dir)}"><span class="arrow" aria-hidden="true">${arrow(c.dir)}</span> ${c.text} <span class="vs">${c.vs}</span></p>` : ''}
+  ${c ? html`<p class="delta delta-${dirWord(c.dir)}"><span class="arrow" aria-hidden="true">${arrow(c.dir)}</span> ${c.text} <span class="vs">${c.vs}</span></p>` : html`<p class="delta delta-flat">No earlier figure to compare with</p>`}
   <div class="card-spark">${raw(sparkSvg(h.spark, { width: t.size === 'xl' ? 520 : 240, height: t.size === 'xl' ? 96 : 48, type: t.headline.sparkType ?? 'line', c: 1 }))}</div>
   <p class="stamp">${ds.publisher.split(' (')[0]} · updated <time datetime="${file.meta.last_updated.slice(0, 10)}">${dayLabel(file.meta.last_updated)}</time></p>
 </article>`;

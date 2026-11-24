@@ -245,10 +245,11 @@ export function renderChart(spec, { width = 720, height = 300, id = 'c' } = {}) 
     spec.series.forEach((s) => out.push(`<path class="line s${s.c ?? 1}" d="${linePath(L, s.v)}" pathLength="1"/>`));
     out.push('</g>');
     // End dots, and direct labels for up to four series.
-    const ends = spec.series.map((s, k) => {
+    const ends = spec.series.flatMap((s, k) => {
       let i = s.v.length - 1;
       while (i > 0 && !Number.isFinite(s.v[i])) i -= 1;
-      return { k, i, x: L.xs(i), y: L.ys(s.v[i]), y0: L.ys(s.v[i]), label: s.short ?? s.label, c: s.c ?? k + 1 };
+      if (!Number.isFinite(s.v[i])) return [];
+      return [{ k, i, x: L.xs(i), y: L.ys(s.v[i]), y0: L.ys(s.v[i]), label: s.short ?? s.label, c: s.c ?? k + 1 }];
     });
     out.push('<g class="ends">');
     for (const e of ends) out.push(`<circle class="end s${e.c}" cx="${r1(e.x)}" cy="${r1(e.y0)}" r="3.5"/>`);

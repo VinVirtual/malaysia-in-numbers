@@ -81,6 +81,7 @@ class Chart {
   bind() {
     const n = this.spec.x.length;
     this.plot.addEventListener('pointermove', (ev) => {
+      if (!this.svg) return;
       const box = this.svg.getBoundingClientRect();
       const px = ((ev.clientX - box.left) / box.width) * this.L.width;
       this.show(nearestIndex(this.L, n, px), false, ev.pointerType !== 'mouse');
@@ -99,6 +100,7 @@ class Chart {
       else if (ev.key === 'End') i = n - 1;
       else if (ev.key === 'Escape') {
         this.hide();
+        if (this.readout) this.readout.textContent = '';
         return;
       } else return;
       ev.preventDefault();
@@ -107,6 +109,7 @@ class Chart {
   }
 
   show(i, announce, touch = false) {
+    if (!this.svg || !this.L) return;
     this.index = i;
     const L = this.L;
     const g = this.svg.querySelector('.cursor');

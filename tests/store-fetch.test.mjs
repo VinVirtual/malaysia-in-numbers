@@ -5,10 +5,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { validateDatasetFile, serializeDatasetFile, diffSeries, writeDataset, loadDataset, loadAll, appendRelease, loadReleases, SchemaError } from '../scripts/lib/store.mjs';
-import { fetchAll, makeHttp } from '../scripts/lib/fetch.mjs';
+import { fetchAll, makeHttp, shrinkage } from '../scripts/lib/fetch.mjs';
 import { DATASETS } from '../scripts/lib/config.mjs';
 import { parseArgs, siteUrlFromEnv } from '../scripts/mnum.mjs';
-import { fixtureFile, fixtureFetch, fixtureJson, testHttp, testBudget, tmpDir } from './helpers.mjs';
+import { spawnSync } from 'node:child_process';
+import { ROOT, fixtureFile, fixtureFetch, fixtureJson, testHttp, testBudget, tmpDir } from './helpers.mjs';
 
 const good = () => fixtureFile('lfs_month');
 
@@ -136,6 +137,33 @@ test('a failing dataset keeps its committed file and the others still update', a
   assert.equal(fs.readFileSync(path.join(dataDir, 'series', 'fuelprice.json'), 'utf8'), before);
 });
 
+test('a reply that loses history, or ends earlier than before, is refused and the file kept', async () => {
+  const root = tmpDir();
+  const dataDir = path.join(root, 'data');
+  await fetchAll({ root, dataDir, http: testHttp(fixtureFetch()) });
+  const before = fs.readFileSync(path.join(dataDir, 'series', 'lfs_month.json'), 'utf8');
+  const nulled = fixtureJson('lfs_month');
+  nulled.data = nulled.data.map((r) => (r.date === '2026-09-01' ? { ...r, u_rate: null } : r));
+  const short = fixtureJson('lfs_month');
+  short.data = short.data.slice(-3);
+  for (const body of [nulled, short]) {
+    const { results } = await fetchAll({ root, dataDir, only: ['lfs_month'], http: testHttp(fixtureFetch({ lfs_month: () => ({ body: JSON.stringify(body) }) })) });
+    assert.equal(results[0].ok, false);
+    assert.match(results[0].error, /keeping the committed file/);
+  }
+  assert.equal(fs.readFileSync(path.join(dataDir, 'series', 'lfs_month.json'), 'utf8'), before);
+  assert.equal(shrinkage({ a: [['2026-01-01', 1]] }, { a: [['2026-01-01', 1], ['2026-02-01', 2]] }), null, 'growth is fine');
+  assert.match(shrinkage({ a: [['2026-01-01', 1]] }, { b: [['2026-01-01', 1]] }), /missing/);
+});
+
+test('rows without a valid date fail the dataset instead of vanishing quietly', async () => {
+  const root = tmpDir();
+  const bad = fixtureJson('gdp_qtr_real');
+  bad.data[0] = { ...bad.data[0], date: '2026-Q3' };
+  const { results } = await fetchAll({ root, dataDir: path.join(root, 'data'), only: ['gdp_qtr_real'], http: testHttp(fixtureFetch({ gdp_qtr_real: () => ({ body: JSON.stringify(bad) }) })) });
+  assert.match(results[0].error, /1 rows without a valid date/);
+});
+
 test('when the request budget runs out the run stops asking', async () => {
   const root = tmpDir();
   const f = fixtureFetch();
@@ -163,4 +191,23 @@ test('CLI options are checked', () => {
   assert.equal(parseArgs([]).cmd, 'help');
   assert.equal(siteUrlFromEnv({}), 'https://malaysia-in-numbers.pages.dev/');
   assert.equal(siteUrlFromEnv({ MNUM_SITE_URL: ' https://data.lashvin.com/ ' }), 'https://data.lashvin.com/');
+});
+
+test('the CLI refuses to build into a folder it would wipe, and check refuses stray data files', () => {
+  const run = (args) => spawnSync(process.execPath, [path.join(ROOT, 'scripts', 'mnum.mjs'), ...args], { encoding: 'utf8', cwd: ROOT });
+  for (const out of ['data', 'scripts', '.', '../elsewhere']) {
+    const r = run(['site', '--out', out]);
+    assert.equal(r.status, 2, out);
+    assert.match(r.stderr, /--out must be dist\/ or a folder under \.scratch\//);
+  }
+  assert.ok(fs.existsSync(path.join(ROOT, 'data', 'series', 'fuelprice.json')));
+  const stray = path.join(ROOT, 'data', 'series', 'evil.json');
+  fs.writeFileSync(stray, '{}');
+  try {
+    const r = run(['check']);
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /unexpected files in data\/series: evil\.json/);
+  } finally {
+    fs.rmSync(stray);
+  }
 });

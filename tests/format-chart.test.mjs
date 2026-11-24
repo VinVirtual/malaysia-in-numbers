@@ -1,7 +1,7 @@
 // Number formats, changes, period labels and the SVG chart engine.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fmt, change, periodLabel, asOfLabel, fixed, FORMATS } from '../assets/js/format.js';
+import { fmt, change, periodLabel, asOfLabel, fixed, FORMATS, stepDp } from '../assets/js/format.js';
 import { niceTicks, timeTicks, renderChart, layoutChart, describe, spreadLabels, nearestIndex, sparkSvg, barPath, esc } from '../assets/js/chart-core.js';
 
 test('formats read the way Malaysian figures are written', () => {
@@ -36,6 +36,30 @@ test('changes: percentage points, sen and per cent, with direction', () => {
   assert.equal(change('pct', 1, 0), null, 'no per cent change from zero');
   assert.equal(change('pp', 1, null), null);
   assert.throws(() => change('ratio', 1, 2), /unknown change mode/);
+});
+
+test('tick labels carry the decimals their step needs (2.5 is never shown as 3)', () => {
+  const t = niceTicks(-5, 7.4, 5);
+  assert.equal(t.step, 2.5);
+  assert.deepEqual(t.ticks.map((v) => FORMATS.pct1.axis(v, t.step)), ['−5.0%', '−2.5%', '0.0%', '2.5%', '5.0%', '7.5%']);
+  assert.equal(FORMATS.rmbn.axis(2.5e9, 2.5e9), 'RM2.5bn');
+  assert.equal(FORMATS.rmbn.axis(50e9, 50e9), 'RM50bn');
+  assert.equal(FORMATS.pct1.axis(68.25, 0.25), '68.25%');
+  assert.equal(FORMATS.rate4.axis(4.025, 0.025), '4.025');
+  assert.equal(FORMATS.people_k.axis(25000, 5000), '25m');
+  assert.equal(stepDp(0.0001), 4);
+  assert.equal(stepDp(1e-7), 7);
+});
+
+test('a tiny change rounds before its sign is chosen', () => {
+  assert.equal(change('pp', 2.94, 2.9).text, '0.0 pp');
+  assert.equal(change('pp', 2.86, 2.9).text, '0.0 pp');
+  assert.equal(change('pct', 100.01, 100).text, '0.0%');
+});
+
+test('a series with no values gets no end label or NaN coordinates', () => {
+  const s = { type: 'line', fmt: 'pct1', period: 'month', title: 't', x: ['2026-01-01', '2026-02-01'], series: [{ label: 'A', c: 1, v: [1, 2] }, { label: 'B', c: 2, v: [null, null] }] };
+  assert.doesNotMatch(renderChart(s, { width: 600, height: 300 }), /NaN/);
 });
 
 test('period labels for each cadence', () => {

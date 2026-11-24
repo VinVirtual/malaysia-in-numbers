@@ -40,7 +40,7 @@ const text = (v, max = 80) => (typeof v === 'string' ? v.slice(0, max) : null);
 // The meta block says when the source last changed the data and what period it covers.
 export function parseMeta(meta, id) {
   if (!meta || typeof meta !== 'object' || Array.isArray(meta)) throw new DataError(`${id}: response has no meta block`);
-  if (meta.catalogue_id !== undefined && meta.catalogue_id !== id) throw new DataError(`${id}: response is for another dataset (${text(meta.catalogue_id, 40)})`);
+  if (meta.catalogue_id !== id) throw new DataError(`${id}: response is for another dataset (${text(String(meta.catalogue_id), 40)})`);
   const out = {
     data_as_of: text(meta.data_as_of, 20),
     last_updated: text(meta.last_updated, 20),

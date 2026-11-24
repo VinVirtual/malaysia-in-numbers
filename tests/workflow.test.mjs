@@ -42,9 +42,19 @@ test('deploy skips with a warning when a Cloudflare secret is missing', () => {
   assert.match(daily, /PAGES_PROJECT: malaysia-in-numbers/);
 });
 
-test('commit and deploy run only when something changed (or on a manual deploy)', () => {
-  assert.match(daily, /commit:\n\s+needs: fetch\n\s+if: needs\.fetch\.outputs\.changed == 'true'/);
-  assert.match(daily, /needs\.commit\.result == 'success' \|\| github\.event\.inputs\.deploy_only == 'true'/);
+test('commit runs only when something changed; deploy after every good fetch; both on main only', () => {
+  assert.match(daily, /commit:\n\s+needs: fetch\n\s+if: needs\.fetch\.outputs\.changed == 'true' && github\.ref == 'refs\/heads\/main'/);
+  assert.match(daily, /github\.ref == 'refs\/heads\/main' &&\n\s+\(\(needs\.fetch\.result == 'success' && needs\.commit\.result != 'failure'\) \|\| github\.event\.inputs\.deploy_only == 'true'\)/);
+});
+
+test('a partial failure turns the run red after the rest has finished', () => {
+  assert.match(daily, /failed: \$\{\{ steps\.fetch\.outputs\.failed \}\}/);
+  assert.match(daily, /alert:\n\s+needs: \[fetch, deploy\]\n\s+if: always\(\) && needs\.fetch\.outputs\.failed != ''/);
+  assert.match(daily, /FAILED: \$\{\{ needs\.fetch\.outputs\.failed \}\}[\s\S]*exit 1/);
+});
+
+test('the release log may only grow', () => {
+  assert.match(daily, /cmp -s - data\/releases\.jsonl/);
 });
 
 test('the commit job copies only dataset files and the release log, and validates before and after rebase', () => {
@@ -60,7 +70,7 @@ test('the schedule in the workflow matches the one the Method page states', () =
 
 test('every job has a timeout, so a stuck run cannot eat the month', () => {
   const jobs = [...daily.split(/^jobs:$/m)[1].matchAll(/^ {2}([a-z]+):$/gm)].length;
-  assert.equal(jobs, 3);
+  assert.equal(jobs, 4);
   assert.equal([...daily.matchAll(/timeout-minutes: \d+/g)].length, jobs);
   const worst = [...daily.matchAll(/timeout-minutes: (\d+)/g)].reduce((s, m) => s + Number(m[1]), 0);
   assert.ok(worst * 31 < 2000, `worst case ${worst * 31} minutes a month`);

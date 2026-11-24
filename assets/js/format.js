@@ -39,19 +39,33 @@ export function fixed(v, dp) {
   return neg && Number(s) !== 0 ? `−${out}` : out;
 }
 
-const signed = (v, dp) => (v > 0 ? `+${fixed(v, dp)}` : Number(v.toFixed(dp)) === 0 ? fixed(0, dp) : fixed(v, dp));
+const signed = (v, dp) => {
+  const r = Number(v.toFixed(dp));
+  return r > 0 ? `+${fixed(r, dp)}` : r === 0 ? fixed(0, dp) : fixed(r, dp);
+};
+
+// Decimal places a tick step needs, so 2.5 is never shown as 3.
+export function stepDp(step) {
+  if (!Number.isFinite(step) || step <= 0) return 0;
+  const s = String(Number(step.toPrecision(6)));
+  if (s.includes('e-')) {
+    const [m, e] = s.split('e-');
+    return (m.split('.')[1]?.length ?? 0) + Number(e);
+  }
+  return s.includes('.') ? s.split('.')[1].length : 0;
+}
 
 // value: full label; axis: tick label; unit: words for screen readers and tables.
 export const FORMATS = {
   rm2: { value: (v) => `RM${fixed(v, 2)}`, axis: (v) => `RM${fixed(v, 2)}`, unit: 'ringgit per litre' },
-  pct1: { value: (v) => `${fixed(v, 1)}%`, axis: (v, step) => `${fixed(v, step < 1 ? 1 : 0)}%`, unit: 'per cent' },
-  rate4: { value: (v) => fixed(v, 4), axis: (v, step) => fixed(v, step < 0.01 ? 3 : 2), unit: 'ringgit per unit of currency' },
-  rmbn: { value: (v) => `RM${fixed(v / 1e9, 1)} bn`, axis: (v) => `RM${fixed(v / 1e9, 0)}bn`, unit: 'billion ringgit' },
-  rmbn_m: { value: (v) => `RM${fixed(v / 1e3, 1)} bn`, axis: (v) => `RM${fixed(v / 1e3, 0)}bn`, unit: 'billion ringgit at constant 2015 prices' },
-  gwh: { value: (v) => `${fixed(v, 0)} GWh`, axis: (v) => fixed(v, 0), unit: 'gigawatt-hours' },
+  pct1: { value: (v) => `${fixed(v, 1)}%`, axis: (v, step) => `${fixed(v, stepDp(step))}%`, unit: 'per cent' },
+  rate4: { value: (v) => fixed(v, 4), axis: (v, step) => fixed(v, Math.max(2, stepDp(step))), unit: 'ringgit per unit of currency' },
+  rmbn: { value: (v) => `RM${fixed(v / 1e9, 1)} bn`, axis: (v, step) => `RM${fixed(v / 1e9, stepDp(step / 1e9))}bn`, unit: 'billion ringgit' },
+  rmbn_m: { value: (v) => `RM${fixed(v / 1e3, 1)} bn`, axis: (v, step) => `RM${fixed(v / 1e3, stepDp(step / 1e3))}bn`, unit: 'billion ringgit at constant 2015 prices' },
+  gwh: { value: (v) => `${fixed(v, 0)} GWh`, axis: (v, step) => fixed(v, stepDp(step)), unit: 'gigawatt-hours' },
   people_k: {
     value: (v) => (Math.abs(v) >= 1000 ? `${fixed(v / 1000, 2)} million` : `${fixed(v, 1)} thousand`),
-    axis: (v, step) => (Math.abs(step) >= 1000 || Math.abs(v) >= 1000 ? `${fixed(v / 1000, step >= 1000 ? 0 : 1)}m` : `${fixed(v, 0)}k`),
+    axis: (v, step) => (step >= 1000 || Math.abs(v) >= 1000 ? `${fixed(v / 1000, stepDp(step / 1000))}m` : `${fixed(v, stepDp(step))}k`),
     unit: 'people',
   },
 };

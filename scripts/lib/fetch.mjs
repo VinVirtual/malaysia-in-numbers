@@ -19,6 +19,21 @@ export function makeHttp({ root, offline = false, fetchImpl, useCache = true, li
   });
 }
 
+// A reply that loses values, or whose newest point is older than the committed one, is
+// refused: it is far more likely a broken reply than a real deletion.
+export function shrinkage(oldSeries, newSeries) {
+  if (!oldSeries) return null;
+  for (const [key, pts] of Object.entries(oldSeries)) {
+    const now = newSeries[key];
+    if (!now?.length) return `series ${key} is missing from the reply`;
+    if (now.at(-1)[0] < pts.at(-1)[0]) return `series ${key} now ends at ${now.at(-1)[0]}, before ${pts.at(-1)[0]}`;
+    const have = new Set(now.map((p) => p[0]));
+    const lost = pts.filter((p) => !have.has(p[0])).length;
+    if (lost) return `series ${key} lost ${lost} value${lost > 1 ? 's' : ''}`;
+  }
+  return null;
+}
+
 export async function fetchAll({ root, dataDir, http, only = null, datasets = DATASETS, nowIso = () => new Date().toISOString(), log = () => {} }) {
   const results = [];
   for (const ds of datasets) {
@@ -28,8 +43,11 @@ export async function fetchAll({ root, dataDir, http, only = null, datasets = DA
       const { data, fromCache } = await http.getJson(buildUrl(ds));
       const { meta, rows } = parseResponse(data, ds.id);
       const { series, skipped } = extractSeries(ds, rows);
+      if (skipped) throw new Error(`${skipped} rows without a valid date; keeping the committed file`);
       const old = loadDataset(dataDir, ds.id);
       const diff = diffSeries(old?.series, series);
+      const shrink = shrinkage(old?.series, series);
+      if (shrink) throw new Error(`${shrink}; keeping the committed file (a source that deletes history is treated as an error, not news)`);
       const metaChanged = !old || JSON.stringify(old.meta) !== JSON.stringify(meta);
       Object.assign(r, { ok: true, fromCache, rows: rows.length, skipped, data_as_of: meta.data_as_of, last_updated: meta.last_updated, ...diff });
       if (diff.changed || metaChanged) {

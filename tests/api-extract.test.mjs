@@ -53,7 +53,8 @@ test('parseMeta keeps the source dates and checks the dataset id', () => {
   assert.deepEqual(m.data_source, ['MOF']);
   assert.throws(() => parseMeta({ ...fixtureJson('fuelprice').meta, catalogue_id: 'births' }, 'fuelprice'), /another dataset/);
   assert.throws(() => parseMeta({ catalogue_id: 'fuelprice' }, 'fuelprice'), /lacks data_as_of/);
-  assert.throws(() => parseMeta({ data_as_of: '2026', last_updated: 'yesterday' }, 'fuelprice'), /not a date/);
+  assert.throws(() => parseMeta({ catalogue_id: 'fuelprice', data_as_of: '2026', last_updated: 'yesterday' }, 'fuelprice'), /not a date/);
+  assert.throws(() => parseMeta({ data_as_of: '2026', last_updated: '2026-01-01' }, 'fuelprice'), /another dataset/, 'a missing id is not trusted');
   assert.throws(() => parseMeta(null, 'fuelprice'), /no meta/);
 });
 

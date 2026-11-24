@@ -13,8 +13,12 @@
 #            hands the data folder on as an artifact and says whether anything changed.
 #   commit - contents: write. Runs only when something changed. Takes only the dataset files
 #            and the release log, validates them, rebases and pushes.
-#   deploy - contents: read. Builds the site from main and uploads it to Cloudflare Pages.
-# Days with no new figures cost one short job (about 3 minutes).
+#   deploy - contents: read. Builds the site from main and uploads it to Cloudflare Pages,
+#            every day the fetch succeeded, so the edition date is today's and a failed
+#            deploy is retried the next day.
+#   alert  - no rights. Fails the run, after the rest has finished, if any dataset failed,
+#            so a partial failure is a red run (and an email), not just a warning.
+# A day costs about 4 billed minutes (fetch about 3, deploy 1), plus 1 when data changed.
 name: daily
 
 on:
@@ -43,6 +47,7 @@ jobs:
       contents: read
     outputs:
       changed: ${{ steps.fetch.outputs.changed }}
+      failed: ${{ steps.fetch.outputs.failed }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -73,7 +78,7 @@ jobs:
 
   commit:
     needs: fetch
-    if: needs.fetch.outputs.changed == 'true'
+    if: needs.fetch.outputs.changed == 'true' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -98,7 +103,11 @@ jobs:
             if [[ ! "$name" =~ ^[a-z0-9_]+\.json$ || -L "$f" || ! -f "$f" ]]; then echo "unexpected file: $name"; exit 1; fi
             cp "$f" "data/series/$name"
           done
-          if [[ -f "$src/releases.jsonl" && ! -L "$src/releases.jsonl" ]]; then cp "$src/releases.jsonl" data/releases.jsonl; fi
+          if [[ -f "$src/releases.jsonl" && ! -L "$src/releases.jsonl" ]]; then
+            # The log only grows: the committed log must be the start of the new one.
+            if [[ -f data/releases.jsonl ]] && ! head -c "$(stat -c%s data/releases.jsonl)" "$src/releases.jsonl" | cmp -s - data/releases.jsonl; then echo "release log was rewritten, not appended"; exit 1; fi
+            cp "$src/releases.jsonl" data/releases.jsonl
+          fi
           node scripts/mnum.mjs check
           git config user.name "Lashvin Manimaran"
           git config user.email "190336345+VinVirtual@users.noreply.github.com"
@@ -112,8 +121,8 @@ jobs:
   deploy:
     needs: [fetch, commit]
     if: >-
-      always() &&
-      (needs.commit.result == 'success' || github.event.inputs.deploy_only == 'true')
+      always() && github.ref == 'refs/heads/main' &&
+      ((needs.fetch.result == 'success' && needs.commit.result != 'failure') || github.event.inputs.deploy_only == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -156,3 +165,17 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: '4.167.0'
           command: pages deploy dist --project-name=${{ env.PAGES_PROJECT }} --branch=main --commit-dirty=true
+
+  alert:
+    needs: [fetch, deploy]
+    if: always() && needs.fetch.outputs.failed != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - name: Fail the run because some datasets failed
+        env:
+          FAILED: ${{ needs.fetch.outputs.failed }}
+        run: |
+          echo "::error title=Datasets failed::These datasets kept their previous figures: $FAILED. See the fetch job's log."
+          exit 1

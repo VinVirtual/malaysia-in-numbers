@@ -37,7 +37,7 @@ export function renderMethod({ files, base }) {
   <li>The API allows four requests a minute. Requests are spaced ${spacing} seconds apart; if the API still answers “too many requests”, the job waits as long as it is told (up to ${LIMITS.maxRetryAfterMs / 1000} s) and tries once more.</li>
   <li>Each run is capped at ${LIMITS.maxRequests} requests, ${LIMITS.maxBytes / 1024 / 1024} MB in total, ${LIMITS.maxResponseBytes / 1024 / 1024} MB per reply, ${LIMITS.timeoutMs / 1000} s per request and ${LIMITS.wallClockMs / 60000} minutes overall. HTTPS only, one allowed host, redirects refused, no key, no cookies, and a plain User-Agent naming this site.</li>
   <li>Replies are cached for ${LIMITS.cacheTtlMs / 3_600_000} hours on the machine that runs the job, so a re-run asks nobody.</li>
-  <li>Every reply is checked before use: it must be for the dataset asked for, carry dates and numbers in the expected form, and never give two values for one date. A dataset that fails keeps its last good figures; the failure is a warning in the run’s log.</li>
+  <li>Every reply is checked before use: it must name the dataset asked for, carry the source’s dates, have a real calendar date on every row and never give two values for one date. Empty values are left out, never turned into zero. A reply that would delete figures already stored, or end earlier than before, is refused as broken. A dataset that fails keeps its last good figures, and the day’s run is marked as failed.</li>
 </ul>
 <p>The requests, exactly as sent:</p>
 <ul class="urls">${DATASETS.map((d) => html`<li><code class="url">${buildUrl(d)}</code></li>`)}</ul>
@@ -54,7 +54,7 @@ export function renderMethod({ files, base }) {
 </ul>
 
 <h2>Reading the charts</h2>
-<p>Every chart is drawn as SVG when the site is built, so it shows without JavaScript. With JavaScript, it is redrawn at the width of your screen, hovering shows the values under the pointer, and the chart can be focused with the Tab key and read with the arrow keys (Home and End jump to the ends), with the values announced to screen readers. Each chart has the full table behind it and a CSV download. Charts with several series have a legend and, where there is room, labels at the line ends; one chart never has two scales.</p>
+<p>Every chart is drawn as SVG when the site is built, so it shows without JavaScript. With JavaScript, it is redrawn at the width of your screen, hovering shows the values under the pointer, and line and bar charts can be focused with the Tab key and read with the arrow keys (Home and End jump to the ends), with the values announced to screen readers. Horizontal bar charts print every value next to its bar, so they are read as they are. Each chart has the full table behind it and a CSV download. Charts with several series have a legend and, where there is room, labels at the line ends; one chart never has two scales.</p>
 
 <h2>Feeds</h2>
 <p><a href="${localHref(`${base}feed.json`)}">feed.json</a> is a JSON Feed 1.1 with one item per dataset release, so a feed reader shows each new figure once. <a href="${localHref(`${base}latest.json`)}">latest.json</a> is the same latest values as plain JSON for scripts.</p>
@@ -72,7 +72,7 @@ export function renderLimits() {
 <ul class="limits">
   <li><strong>Not an official source.</strong> This is an independent site that republishes open data. For anything that matters, check the publisher’s own release; every chart links to it.</li>
   <li><strong>Figures get revised.</strong> GDP, labour force, trade and electricity figures are revised after first release. The site always shows the latest version; earlier versions are in the project’s history and the release log counts revisions, but the pages do not show them side by side.</li>
-  <li><strong>Up to a day late.</strong> The site checks once a day, so a release can take until the next run (${SCHEDULE.myt}) to appear. If the API is down or refuses a request, the previous figures stay up and the failure shows only in the project’s Actions log, not on the site. “Change picked up here” on each page is the last day this site saw new or revised figures for it, not the last day it looked.</li>
+  <li><strong>Up to a day late.</strong> The site checks once a day, so a release can take until the next run (${SCHEDULE.myt}) to appear. If the API is down or refuses a request, the previous figures stay up; the failure turns the day’s run red in the project’s Actions log but is not shown on the site. “Change picked up here” on each page is the last day this site saw new or revised figures for it, not the last day it looked.</li>
   <li><strong>The API’s dates are taken as given.</strong> “Updated by source” and “Next update” are the API’s own <code>last_updated</code> and <code>next_update</code> fields. Its time zone is not stated, so only the dates are shown.</li>
   <li><strong>No seasonal adjustment, no inflation adjustment.</strong> Trade values are in current ringgit. Exports and electricity use have seasons, which is why their cards compare with the same month a year before.</li>
   <li><strong>Electricity data lag.</strong> The source publishes consumption about four months after the month ends.</li>
