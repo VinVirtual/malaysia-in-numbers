@@ -77,7 +77,18 @@ npm run capture              # screenshots into docs/
 | `deploy` | `contents: read` | every day the fetch succeeded, or `deploy_only` | builds from `main` and uploads to Cloudflare Pages (so the edition date is today's, and a failed deploy is retried the next day); **if a Cloudflare secret is missing it logs a warning and skips**, and the data is still committed |
 | `alert` | none | only if a dataset failed | fails the run after everything else has finished, so a partial failure is a red run and a GitHub email, not just a warning |
 
-Minutes: GitHub gives a private repository 2,000 free Actions minutes a month and bills each job rounded up to the minute. A live fetch takes about two minutes (8 requests 16 s apart: 115 s measured on 24 November 2026), so a normal day costs the fetch job (about 3 billed minutes) and the deploy job (1), and a day with a new release 1 more for the commit. Most datasets change once a month and fuel once a week, so expect roughly 30 × 4 + 15 × 1 ≈ **135 minutes a month**, about 7% of the free allowance. Every job has a timeout; even if every one ran to its limit every day the month would stay under 2,000 minutes. Measured runs are listed under "Measured" below. Commits made by the workflow do not trigger the test workflow (GitHub does not chain runs started by `GITHUB_TOKEN`).
+Minutes: GitHub gives a private repository 2,000 free Actions minutes a month and bills each job rounded up to the minute. A live fetch takes about two minutes (8 requests 16 s apart: 115 s measured on 24 November 2026), so a normal day costs the fetch job (about 3 billed minutes) and the deploy job (1), and a day with a new release 1 more for the commit. Most datasets change once a month and fuel once a week, so expect roughly 30 × 4 + 15 × 1 ≈ **135 minutes a month**, about 7% of the free allowance. Every job has a timeout; even if every one ran to its limit every day the month would stay under 2,000 minutes. Commits made by the workflow do not trigger the test workflow (GitHub does not chain runs started by `GITHUB_TOKEN`).
+
+### Measured
+
+Two manual runs of the daily workflow on GitHub on 24 November 2026 (no new figures that day, `CLOUDFLARE_API_TOKEN` not yet set):
+
+| Run | fetch job | deploy job | Billed minutes |
+|---|---|---|---|
+| 1 (first version, deploy only after a commit) | 2 min 2 s (8 requests, 365 KB, 114 s of fetching) | skipped | 3 |
+| 2 (current) | 2 min 2 s (113 s of fetching) | 10 s, skipped the upload with the warning | 3 + 1 = 4 |
+
+The test workflow took 1 min 10 s on its first push (2 billed minutes), and runs only on human pushes and pull requests.
 
 [`.github/workflows/test.yml`](.github/workflows/test.yml) runs on push and pull request: unit tests, data validation, site build and the browser test.
 
