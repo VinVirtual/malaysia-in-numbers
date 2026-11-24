@@ -111,7 +111,7 @@ npx wrangler pages deploy dist --project-name malaysia-in-numbers --branch main
 
 - **Not an official source.** An independent site that republishes open data. It is not affiliated with any agency. Check the publisher's release before relying on a figure; every chart links to it.
 - **Figures are revised.** The site shows the latest version only. Earlier versions are in Git and counted in the release log, but not drawn side by side.
-- **Up to a day late**, and if the API fails the previous figures stay up; each page shows when this site last saw a change.
+- **Up to a day late.** If the API fails, the previous figures stay up and the failure shows only as a warning in the Actions log. Each page shows the last day this site picked up a change for it, not the last day it looked (recording every check would mean a commit every day).
 - **The API's dates are taken as given.** Its time zone is not stated; the feed reads them as Malaysia time.
 - **No seasonal or price adjustment** of anything; trade is in current ringgit. Changes are computed only for the headline numbers and the trade balance; everything else is the publishers' own.
 - **Colour means direction, not good or bad.**

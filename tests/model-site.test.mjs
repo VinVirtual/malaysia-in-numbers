@@ -142,7 +142,7 @@ test('pages carry the strict CSP, one h1, Malay labels marked lang="ms", and Upd
   assert.match(home, /Edition of <time datetime="2026-11-24">Tuesday 24 November 2026<\/time>/);
   const fuel = site.read('fuel/index.html');
   assert.match(fuel, /<dt>Updated by source<\/dt><dd><time datetime="2026-11-18">18 Nov 2026<\/time>/);
-  assert.match(fuel, /<dt>Checked by this site<\/dt>/);
+  assert.match(fuel, /<dt>Change picked up here<\/dt>/);
 });
 
 test('every chart has a data table, a CSV download that exists, and a keyboard-focusable plot', () => {

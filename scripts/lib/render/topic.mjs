@@ -39,7 +39,7 @@ export function renderTopic({ topic, file, head, charts, base }) {
     <div><dt>Data to</dt><dd>${asOfLabel(m.data_as_of)}</dd></div>
     <div><dt>Updated by source</dt><dd><time datetime="${m.last_updated.slice(0, 10)}">${dayLabel(m.last_updated)}</time></dd></div>
     <div><dt>Next update (per source)</dt><dd>${/^\d{4}-\d{2}-\d{2}/.test(m.next_update ?? '') ? dayLabel(m.next_update) : 'not announced'}</dd></div>
-    <div><dt>Checked by this site</dt><dd><time datetime="${file.fetchedAt.slice(0, 10)}">${dayLabel(file.fetchedAt)}</time></dd></div>
+    <div><dt>Change picked up here</dt><dd><time datetime="${file.fetchedAt.slice(0, 10)}">${dayLabel(file.fetchedAt)}</time></dd></div>
   </dl>
 </section>
 <div class="figures">

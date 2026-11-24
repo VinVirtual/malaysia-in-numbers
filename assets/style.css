@@ -600,6 +600,7 @@ tbody th { font-weight: 500; }
 .limits { padding-left: 1.2rem; }
 .limits li::marker { color: var(--up-mark); }
 .datasets td, .datasets th { white-space: normal; }
+.table-scroll:has(.datasets) { max-height: none; }
 .log td, .log th { white-space: nowrap; }
 
 /* ---------- footer ---------- */

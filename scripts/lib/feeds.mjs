@@ -31,7 +31,7 @@ export function latestJson(heads, files, builtAt) {
       change: h.change ? { text: h.change.text, versus: h.change.vs } : null,
       data_as_of: f.meta.data_as_of,
       source_last_updated: f.meta.last_updated,
-      checked_at: f.fetchedAt,
+      change_picked_up_at: f.fetchedAt,
       publisher: ds.publisher,
       source_page: ds.page,
       licence: LICENCE.name,
