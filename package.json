@@ -12,7 +12,8 @@
     "site": "node scripts/mnum.mjs site",
     "test": "node --test tests/*.test.mjs",
     "test:e2e": "node --test tests/e2e/*.test.mjs",
-    "capture": "node scripts/capture.mjs"
+    "capture": "node scripts/capture.mjs",
+    "share-image": "node scripts/share-image.mjs"
   },
   "devDependencies": {
     "playwright-core": "1.65.1"

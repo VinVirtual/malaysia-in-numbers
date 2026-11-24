@@ -13,6 +13,7 @@ import { renderHome } from './render/home.mjs';
 import { renderTopic } from './render/topic.mjs';
 import { renderMethod, renderLimits, renderLog, render404 } from './render/pages.mjs';
 import { jsonFeed, latestJson } from './feeds.mjs';
+import { addShareTags } from './share.mjs';
 
 export const SITE_BUDGET_BYTES = 6 * 1024 * 1024;
 
@@ -104,6 +105,7 @@ export function buildSite({ root, dataDir, assetsDir, outDir, siteUrl, now = new
   write('latest.json', latestJson(heads, files, now));
   write('robots.txt', `User-agent: *\nAllow: /\n`);
   write('_headers', headersFile());
+  addShareTags(outDir, { siteUrl, root });
   const problems = checkSite(outDir);
   if (problems.length) throw new Error(`site check failed:\n  ${problems.join('\n  ')}`);
   return { pages, csv, bytes: dirBytes(outDir), heads };
