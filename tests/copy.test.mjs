@@ -9,7 +9,7 @@ import { buildSite } from '../scripts/lib/site.mjs';
 import { writeDataset, appendRelease } from '../scripts/lib/store.mjs';
 import { ROOT, allFixtureFiles, tmpDir } from './helpers.mjs';
 
-const EM = '—';
+const EM = '\u2014'; // the em dash
 
 function walk(dir, keep) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => {
