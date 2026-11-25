@@ -1,5 +1,5 @@
-// The GitHub workflows: pinned actions, least privilege, a deploy that skips cleanly without
-// the Cloudflare token, and a schedule that keeps the private repo inside the free minutes.
+// The GitHub workflows: pinned actions, least privilege, a Pages deploy that is off in this
+// repository (manual only, schedule commented for forks) and a schedule a fork can afford.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -10,7 +10,8 @@ import { SCHEDULE } from '../scripts/lib/render/pages.mjs';
 const read = (n) => fs.readFileSync(path.join(ROOT, '.github', 'workflows', n), 'utf8');
 // Comments are dropped so the checks read only what GitHub runs.
 const code = (s) => s.replace(/^\s*#.*$/gm, '').replace(/ #.*$/gm, '');
-const daily = code(read('daily.yml'));
+const raw = read('deploy-pages.yml');
+const daily = code(raw);
 const tests = code(read('test.yml'));
 
 test('every action is pinned by a full commit SHA', () => {
@@ -34,17 +35,24 @@ test('the fetch job holds no write rights and no stored credentials', () => {
   assert.doesNotMatch(fetchJob, /contents: write/);
 });
 
-test('deploy skips with a warning when a Cloudflare secret is missing', () => {
-  assert.match(daily, /HAS_TOKEN: \$\{\{ secrets\.CLOUDFLARE_API_TOKEN != '' \}\}/);
-  assert.match(daily, /::warning title=Cloudflare deploy skipped::/);
-  assert.match(daily, /if: steps\.cf\.outputs\.ready == 'true'\n\s+uses: cloudflare\/wrangler-action@/);
-  assert.match(daily, /--project-name=\$\{\{ env\.PAGES_PROJECT \}\}/);
-  assert.match(daily, /PAGES_PROJECT: malaysia-in-numbers/);
+test('the Pages workflow is off in this repository: manual only, schedule commented for forks', () => {
+  assert.match(daily, /^ {2}workflow_dispatch:$/m);
+  assert.doesNotMatch(daily, /schedule:/, 'the schedule must stay commented out here');
+  assert.match(raw, /^ {2}# schedule:\n {2}# {3}- cron: /m);
+  assert.doesNotMatch(raw, /cloudflare|wrangler|CLOUDFLARE_/i);
 });
 
-test('commit runs only when something changed; deploy after every good fetch; both on main only', () => {
-  assert.match(daily, /commit:\n\s+needs: fetch\n\s+if: needs\.fetch\.outputs\.changed == 'true' && github\.ref == 'refs\/heads\/main'/);
-  assert.match(daily, /github\.ref == 'refs\/heads\/main' &&\n\s+\(\(needs\.fetch\.result == 'success' && needs\.commit\.result != 'failure'\) \|\| github\.event\.inputs\.deploy_only == 'true'\)/);
+test('only the deploy job can publish to Pages', () => {
+  const deployJob = daily.split(/\n {2}deploy:/)[1].split(/\n {2}alert:/)[0];
+  assert.match(deployJob, /pages: write/);
+  assert.match(deployJob, /id-token: write/);
+  assert.match(deployJob, /actions\/deploy-pages@/);
+  assert.equal([...daily.matchAll(/pages: write|id-token: write/g)].length, 2);
+});
+
+test('commit runs only when something changed; deploy after every good fetch; both on the default branch only', () => {
+  assert.match(daily, /commit:\n\s+needs: fetch\n\s+if: needs\.fetch\.outputs\.changed == 'true' && github\.ref_name == github\.event\.repository\.default_branch/);
+  assert.match(daily, /github\.ref_name == github\.event\.repository\.default_branch &&\n\s+\(\(needs\.fetch\.result == 'success' && needs\.commit\.result != 'failure'\) \|\| github\.event\.inputs\.deploy_only == 'true'\)/);
 });
 
 test('a partial failure turns the run red after the rest has finished', () => {
@@ -61,11 +69,12 @@ test('the commit job copies only dataset files and the release log, and validate
   assert.match(daily, /\^\[a-z0-9_\]\+\\\.json\$/);
   assert.match(daily, /git add data\/series data\/releases\.jsonl/);
   assert.equal([...daily.matchAll(/node scripts\/mnum\.mjs check/g)].length >= 3, true);
-  assert.match(daily, /190336345\+VinVirtual@users\.noreply\.github\.com/);
+  assert.match(daily, /41898282\+github-actions\[bot\]@users\.noreply\.github\.com/);
+  assert.doesNotMatch(raw, /VinVirtual/);
 });
 
 test('the schedule in the workflow matches the one the Method page states', () => {
-  assert.match(daily, new RegExp(`cron: '${SCHEDULE.cron.replace(/\*/g, '\\*')}'`));
+  assert.match(raw, new RegExp(`cron: '${SCHEDULE.cron.replace(/\*/g, '\\*')}'`));
 });
 
 test('every job has a timeout, so a stuck run cannot eat the month', () => {

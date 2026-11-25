@@ -1,29 +1,30 @@
-# Daily update: ask api.data.gov.my for every dataset, commit what changed, deploy the site
-# to Cloudflare Pages (free; the repository stays private, which GitHub Pages would charge for).
+# Run your own copy: once a day, ask api.data.gov.my for every dataset, commit what changed,
+# build the site and publish it on GitHub Pages.
 #
-# Needs two repository secrets (Settings -> Secrets and variables -> Actions):
-#   CLOUDFLARE_ACCOUNT_ID - the Cloudflare account id
-#   CLOUDFLARE_API_TOKEN  - a token with Account > Cloudflare Pages > Edit only
-# Without them the data is still fetched and committed; the deploy step says so and skips.
-# Optional repository variable MNUM_SITE_URL (e.g. https://data.lashvin.com/) sets the
-# absolute URL used in the feeds; without it the default in scripts/lib/config.mjs is used.
+# This repository does not host a site, so the schedule below is off and nothing runs unless
+# started by hand. In your fork: uncomment the two schedule lines, then set
+# Settings > Pages > Source to "GitHub Actions".
+#
+# Optional repository variable MNUM_SITE_URL (e.g. https://data.example.org/) if you use a
+# custom domain; otherwise the GitHub Pages address is used.
 #
 # Jobs and their rights:
 #   fetch  - contents: read. Talks to the API with no write rights and no stored credentials;
 #            hands the data folder on as an artifact and says whether anything changed.
 #   commit - contents: write. Runs only when something changed. Takes only the dataset files
 #            and the release log, validates them, rebases and pushes.
-#   deploy - contents: read. Builds the site from main and uploads it to Cloudflare Pages,
-#            every day the fetch succeeded, so the edition date is today's and a failed
-#            deploy is retried the next day.
+#   deploy - pages: write, id-token: write. Builds the site from the default branch and
+#            publishes it, every day the fetch succeeded, so the edition date is today's and a
+#            failed deploy is retried the next day.
 #   alert  - no rights. Fails the run, after the rest has finished, if any dataset failed,
 #            so a partial failure is a red run (and an email), not just a warning.
-# A day costs about 4 billed minutes (fetch about 3, deploy 1), plus 1 when data changed.
-name: daily
+# Minutes: free on public repositories. A private fork uses about 4 billed minutes a day.
+name: deploy-pages
 
 on:
-  schedule:
-    - cron: '23 1 * * *' # 01:23 UTC = 09:23 in Malaysia
+  # Uncomment the next two lines in your fork to update every day.
+  # schedule:
+  #   - cron: '23 1 * * *' # 01:23 UTC = 09:23 in Malaysia
   workflow_dispatch:
     inputs:
       deploy_only:
@@ -35,7 +36,7 @@ on:
 permissions: {}
 
 concurrency:
-  group: daily
+  group: pages
   cancel-in-progress: false
 
 jobs:
@@ -78,7 +79,7 @@ jobs:
 
   commit:
     needs: fetch
-    if: needs.fetch.outputs.changed == 'true' && github.ref == 'refs/heads/main'
+    if: needs.fetch.outputs.changed == 'true' && github.ref_name == github.event.repository.default_branch
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -86,7 +87,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
+          ref: ${{ github.event.repository.default_branch }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
@@ -109,62 +110,50 @@ jobs:
             cp "$src/releases.jsonl" data/releases.jsonl
           fi
           node scripts/mnum.mjs check
-          git config user.name "Lashvin Manimaran"
-          git config user.email "190336345+VinVirtual@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data/series data/releases.jsonl
           if git diff --cached --quiet; then echo "nothing new"; exit 0; fi
           git commit -m "data: update $(date -u +%Y-%m-%d)"
-          git pull --rebase origin main
+          git pull --rebase origin "$GITHUB_REF_NAME"
           node scripts/mnum.mjs check
-          git push origin HEAD:main
+          git push origin "HEAD:$GITHUB_REF_NAME"
 
   deploy:
     needs: [fetch, commit]
     if: >-
-      always() && github.ref == 'refs/heads/main' &&
+      always() && github.ref_name == github.event.repository.default_branch &&
       ((needs.fetch.result == 'success' && needs.commit.result != 'failure') || github.event.inputs.deploy_only == 'true')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: read
-    env:
-      PAGES_PROJECT: malaysia-in-numbers
+      pages: write
+      id-token: write # deploy-pages proves the artifact came from this workflow
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
+          ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
+      - id: pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
       - name: Validate and build the site from the committed data
         env:
-          MNUM_SITE_URL: ${{ vars.MNUM_SITE_URL }}
+          MNUM_SITE_URL: ${{ vars.MNUM_SITE_URL || format('{0}/', steps.pages.outputs.base_url) }}
         run: |
           node scripts/mnum.mjs check
           node scripts/mnum.mjs site
-      - name: Check the Cloudflare secrets
-        id: cf
-        env:
-          HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
-          HAS_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
-        run: |
-          if [[ "$HAS_TOKEN" == "true" && "$HAS_ACCOUNT" == "true" ]]; then
-            echo "ready=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "ready=false" >> "$GITHUB_OUTPUT"
-            msg="Deploy skipped: repository secret CLOUDFLARE_API_TOKEN or CLOUDFLARE_ACCOUNT_ID is not set. The data was still fetched and committed. See README, Hosting."
-            echo "::warning title=Cloudflare deploy skipped::$msg"
-            echo "$msg" >> "$GITHUB_STEP_SUMMARY"
-          fi
-      - name: Deploy to Cloudflare Pages
-        if: steps.cf.outputs.ready == 'true'
-        uses: cloudflare/wrangler-action@953926a2e2182532811c01a25e53647d93bf07c0 # v4.1.3
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: '4.167.0'
-          command: pages deploy dist --project-name=${{ env.PAGES_PROJECT }} --branch=main --commit-dirty=true
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
 
   alert:
     needs: [fetch, deploy]

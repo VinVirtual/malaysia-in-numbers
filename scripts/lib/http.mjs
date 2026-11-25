@@ -1,6 +1,5 @@
 // The only way the site talks to the network: HTTPS GET to an allow-listed host,
 // no redirects, a timeout, a size cap, the shared budget, the cache and a generic User-Agent.
-// (Adapted from physical-ai-radar's http layer.)
 import { BudgetExceeded } from './budget.mjs';
 
 import { API_HOST } from './config.mjs';

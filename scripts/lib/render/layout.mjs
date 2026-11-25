@@ -1,7 +1,7 @@
 // The page shell: strict CSP, no inline script or style, relative links so the site works
 // under any base path.
 import { html, localHref } from '../html.mjs';
-import { SITE_TITLE, SITE_TITLE_MS, LICENCE } from '../config.mjs';
+import { SITE_TITLE, SITE_TITLE_MS, LICENCE, REPO_URL } from '../config.mjs';
 import { TOPICS } from '../topics.mjs';
 
 export const CSP = [
@@ -88,7 +88,7 @@ ${body}
   <div class="colophon-grid">
     <p class="colophon-lead">An independent, automatically updated view of Malaysia’s official open data. It is not a government website and is not affiliated with any of the agencies whose data it shows.</p>
     <p>Data: the public API of <a href="https://data.gov.my/">data.gov.my</a> and <a href="https://open.dosm.gov.my/">OpenDOSM</a>, from the Ministry of Finance, the Department of Statistics Malaysia, Bank Negara Malaysia, TNB, SESB, Sarawak Energy and the Energy Commission, used under <a href="${LICENCE.url}">${LICENCE.name}</a>. Figures are shown as published; charts and wording are this site’s.</p>
-    <p>Page built ${built.short}, ${built.time} Malaysia time. Code MIT. Fonts: Bricolage Grotesque and IBM Plex Mono, SIL Open Font License 1.1 (<a href="${b('assets/fonts/LICENSE-Bricolage-Grotesque.txt')}">text</a>, <a href="${b('assets/fonts/LICENSE-IBM-Plex-Mono.txt')}">text</a>). Latest figures as a <a href="${b('feed.json')}">JSON Feed</a> or <a href="${b('latest.json')}">plain JSON</a>.</p>
+    <p>Page built ${built.short}, ${built.time} Malaysia time. <a href="${REPO_URL}">Source code</a>, MIT licence. Fonts: Bricolage Grotesque and IBM Plex Mono, SIL Open Font License 1.1 (<a href="${b('assets/fonts/LICENSE-Bricolage-Grotesque.txt')}">text</a>, <a href="${b('assets/fonts/LICENSE-IBM-Plex-Mono.txt')}">text</a>). Latest figures as a <a href="${b('feed.json')}">JSON Feed</a> or <a href="${b('latest.json')}">plain JSON</a>.</p>
   </div>
 </footer>
 </body>

@@ -5,6 +5,7 @@
   "description": "A free, self-updating static dashboard of Malaysia's official open data: fuel prices, inflation, jobs, GDP, trade, the ringgit, electricity and population, from api.data.gov.my.",
   "license": "MIT",
   "author": "Lashvin Manimaran",
+  "repository": { "type": "git", "url": "git+https://github.com/VinVirtual/malaysia-in-numbers.git" },
   "type": "module",
   "engines": { "node": ">=22" },
   "scripts": {

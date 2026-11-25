@@ -24,7 +24,9 @@ export function checkSiteUrl(u) {
   } catch {
     throw new Error(`site URL is not a URL: ${u}`);
   }
-  if (p.protocol !== 'https:' || !u.endsWith('/') || p.search || p.hash || p.username) throw new Error('site URL must be https and end with "/"');
+  // https everywhere, except plain http on this machine for local builds.
+  const local = p.protocol === 'http:' && (p.hostname === 'localhost' || p.hostname === '127.0.0.1');
+  if ((p.protocol !== 'https:' && !local) || !u.endsWith('/') || p.search || p.hash || p.username || p.password) throw new Error('site URL must be https (or http://localhost) and end with "/"');
   return u;
 }
 
@@ -111,7 +113,8 @@ export function buildSite({ root, dataDir, assetsDir, outDir, siteUrl, now = new
   return { pages, csv, bytes: dirBytes(outDir), heads };
 }
 
-// Cloudflare Pages turns _headers into response headers (the file itself is not served).
+// Cloudflare Pages and Netlify turn _headers into response headers (the file itself is not
+// served; GitHub Pages ignores it).
 export function headersFile() {
   const lines = [
     '/*',
@@ -177,7 +180,7 @@ export function checkSite(outDir) {
     if (ids.size !== idList.length) problems.push(`${rel}: duplicate id`);
     for (const m of src.matchAll(/\s(?:href|src)="([^"]*)"/g)) {
       const link = m[1].replace(/&amp;/g, '&');
-      if (/^https:\/\//.test(link)) continue;
+      if (/^https:\/\//.test(link) || /^http:\/\/(localhost|127\.0\.0\.1)[:/]/.test(link)) continue; // local builds link to themselves
       if (/^[a-z]+:/i.test(link) || link.startsWith('//')) {
         problems.push(`${rel}: non-https link ${link.slice(0, 60)}`);
         continue;

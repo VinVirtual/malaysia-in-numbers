@@ -1,4 +1,4 @@
-// (From physical-ai-radar.) A tiny static file server for screenshots and the browser test. Local only, read only,
+// A tiny static file server for screenshots and the browser test. Local only, read only,
 // sends the same CSP header the pages carry in their meta tag.
 import http from 'node:http';
 import fs from 'node:fs';

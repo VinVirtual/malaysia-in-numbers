@@ -189,8 +189,8 @@ test('CLI options are checked', () => {
   assert.throws(() => parseArgs(['site', '--out']), /needs a directory/);
   assert.throws(() => parseArgs(['fetch', '--force']), /unknown option/);
   assert.equal(parseArgs([]).cmd, 'help');
-  assert.equal(siteUrlFromEnv({}), 'https://malaysia-in-numbers.pages.dev/');
-  assert.equal(siteUrlFromEnv({ MNUM_SITE_URL: ' https://data.lashvin.com/ ' }), 'https://data.lashvin.com/');
+  assert.equal(siteUrlFromEnv({}), 'http://localhost:8000/');
+  assert.equal(siteUrlFromEnv({ MNUM_SITE_URL: ' https://data.example.org/ ' }), 'https://data.example.org/');
 });
 
 test('the CLI refuses to build into a folder it would wipe, and check refuses stray data files', () => {

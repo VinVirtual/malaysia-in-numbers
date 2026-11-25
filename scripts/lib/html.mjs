@@ -1,6 +1,6 @@
 // HTML building with escaping by default: every value interpolated into `html` is escaped
 // unless it is itself the result of `html` (or explicitly `raw`, used only for markup this
-// code made, such as chart SVG). (Adapted from physical-ai-radar.)
+// code made, such as chart SVG).
 
 const CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u2028\u2029\uFFFE\uFFFF\p{Cf}]/gu;
 export const stripControl = (s) => String(s ?? '').replace(CONTROL, '');

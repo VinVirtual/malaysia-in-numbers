@@ -17,8 +17,8 @@ chrome=""
 for c in "${MNUM_CHROME:-}" /usr/bin/google-chrome /usr/bin/google-chrome-stable /usr/bin/chromium /usr/bin/chromium-browser; do [ -n "$c" ] && [ -x "$c" ] && chrome="$c" && break; done
 if [ -n "$chrome" ]; then pass "Chrome: $chrome"; else note "no Chrome found" "install Google Chrome, or set MNUM_CHROME to a Chromium binary"; fi
 
-echo "deploying by hand (optional):"
-if command -v npx >/dev/null; then pass "npx (for: npx wrangler pages deploy dist --project-name malaysia-in-numbers)"; else note "npx not found" "comes with Node; needed only to deploy from this machine"; fi
+echo "deploying by hand (optional; see README, Deploy your own):"
+if command -v npx >/dev/null; then pass "npx (for: npx wrangler pages deploy dist --project-name <your-project>)"; else note "npx not found" "comes with Node; needed only to deploy from this machine"; fi
 
 [ $ok -eq 0 ] && echo "ready." || echo "fix the MISSING lines above."
 exit $ok

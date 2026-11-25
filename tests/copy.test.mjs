@@ -44,7 +44,7 @@ test('no em dash in the built pages, feeds and headers, apart from text quoted f
     appendRelease(root, dataDir, { at: '2026-11-24T01:30:00.000Z', id: f.id, data_as_of: f.meta.data_as_of, last_updated: f.meta.last_updated, added: 5, revised: 0, removed: 0 });
   }
   const outDir = path.join(root, 'dist');
-  buildSite({ root, dataDir, assetsDir: path.join(ROOT, 'assets'), outDir, siteUrl: 'https://example.pages.dev/', now: new Date('2026-11-24T02:00:00Z') });
+  buildSite({ root, dataDir, assetsDir: path.join(ROOT, 'assets'), outDir, siteUrl: 'https://data.example.org/', now: new Date('2026-11-24T02:00:00Z') });
   const quoted = fixtures.flatMap((f) => strings(f.meta)).filter((s) => s.includes(EM));
   const pages = walk(outDir, (p) => /\.(html|json|xml|txt|css|js)$/.test(p) || path.basename(p) === '_headers');
   assert.ok(pages.some((p) => p.endsWith('index.html')), 'the site was built');

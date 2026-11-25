@@ -46,7 +46,7 @@ function cardHtml() {
   <header class="masthead">
     <span class="wordmark"><svg class="mark" viewBox="0 0 28 28" aria-hidden="true"><rect class="mark-bg" x="0" y="0" width="28" height="28" rx="6"/><path class="mark-bar" d="M6 7h16M6 11h12M6 15h14M6 19h8M6 23h11"/></svg>
     <span class="wm-text"><span class="wm-en">Malaysia in Numbers</span><span class="wm-ms" lang="ms">Malaysia dalam Angka</span></span></span>
-    <span class="site">data.lashvin.com</span>
+    <span class="site">Open data · data.gov.my</span>
   </header>
   <svg class="stripes" viewBox="0 0 100 140" preserveAspectRatio="none" aria-hidden="true">${Array.from({ length: 14 }, (_, i) => `<rect class="stripe${i % 2 ? ' alt' : ''}" x="0" y="${i * 10}" width="100" height="10"/>`).join('')}</svg>
   <div class="body">

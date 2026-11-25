@@ -27,7 +27,7 @@ before(() => {
     appendRelease(root, dataDir, { at: '2026-11-24T01:30:00.000Z', id: f.id, data_as_of: f.meta.data_as_of, last_updated: f.meta.last_updated, added: 5, revised: 0, removed: 0 });
   }
   const outDir = path.join(root, 'dist');
-  const r = buildSite({ root, dataDir, assetsDir: path.join(ROOT, 'assets'), outDir, siteUrl: 'https://example.pages.dev/', now: NOW });
+  const r = buildSite({ root, dataDir, assetsDir: path.join(ROOT, 'assets'), outDir, siteUrl: 'https://data.example.org/', now: NOW });
   site = { root, outDir, r, read: (p) => fs.readFileSync(path.join(outDir, p), 'utf8') };
 });
 
@@ -179,7 +179,9 @@ test('the escaped text in attributes is not mistaken for inline code', () => {
 });
 
 test('site URL must be https and end with a slash', () => {
-  assert.equal(checkSiteUrl('https://data.lashvin.com/'), 'https://data.lashvin.com/');
+  assert.equal(checkSiteUrl('https://data.example.org/'), 'https://data.example.org/');
+  assert.equal(checkSiteUrl('http://localhost:8000/'), 'http://localhost:8000/');
+  assert.throws(() => checkSiteUrl('http://data.example.org/'), /https/);
   for (const bad of ['http://x.example/', 'https://x.example', 'https://x.example/?a=1', 'nope']) assert.throws(() => checkSiteUrl(bad));
 });
 
@@ -197,7 +199,7 @@ test('JSON Feed 1.1: one item per indicator, ids change with each release, absol
   assert.equal(feed.items.length, TOPICS.length);
   assert.equal(new Set(feed.items.map((i) => i.id)).size, TOPICS.length);
   for (const it of feed.items) {
-    assert.match(it.url, /^https:\/\/example\.pages\.dev\/[a-z]+\/$/);
+    assert.match(it.url, /^https:\/\/data\.example\.org\/[a-z]+\/$/);
     assert.match(it.id, /#[0-9A-Za-z-]+$/);
     assert.ok(!Number.isNaN(Date.parse(it.date_published)));
     assert.ok(it.content_text.includes('CC BY 4.0'));

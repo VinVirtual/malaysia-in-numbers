@@ -2,13 +2,11 @@
 
 # Malaysia in Numbers
 
-[![test](https://github.com/VinVirtual/malaysia-in-numbers/actions/workflows/test.yml/badge.svg)](https://github.com/VinVirtual/malaysia-in-numbers/actions/workflows/test.yml) [![License: MIT](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE) [![Data: CC BY 4.0](https://img.shields.io/badge/data-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
+[![test](https://github.com/VinVirtual/malaysia-in-numbers/actions/workflows/test.yml/badge.svg)](https://github.com/VinVirtual/malaysia-in-numbers/actions/workflows/test.yml) [![License: MIT](https://img.shields.io/badge/code-MIT-blue.svg)](LICENSE) [![Data: CC BY 4.0](https://img.shields.io/badge/data-CC%20BY%204.0-lightgrey.svg)](DATA-LICENSE.md)
 
-A free, self-updating dashboard of Malaysia's official open data: fuel prices, inflation, jobs, growth, trade, the ringgit, electricity and population, with accessible charts, the table behind every chart and CSV downloads.
+A self-updating dashboard of Malaysia's official open data: fuel prices, inflation, jobs, growth, trade, the ringgit, electricity and population, with accessible charts, the table behind every chart and CSV downloads. Each build also writes the latest figures as a JSON Feed (`feed.json`) and as plain JSON (`latest.json`).
 
-Live: **https://malaysia-in-numbers.pages.dev/** (latest figures as a [JSON Feed](https://malaysia-in-numbers.pages.dev/feed.json) and as [plain JSON](https://malaysia-in-numbers.pages.dev/latest.json)).
-
-Once a day a GitHub Action asks the official [data.gov.my API](https://developer.data.gov.my/) for eight datasets, one request each, checks every reply, commits a compact copy of the data (so history builds up in Git and in a release log), builds a static site and deploys it to Cloudflare Pages. There is no server, no database, no key and no npm package at runtime.
+Open source: this repository hosts nothing itself. Build it on your machine in a minute, or [deploy your own](#deploy-your-own) on GitHub Pages or Cloudflare Pages. Once a day a GitHub Action asks the official [data.gov.my API](https://developer.data.gov.my/) for eight datasets, one request each, checks every reply, commits a compact copy of the data (so history builds up in Git and in a release log), builds a static site and publishes it. There is no server, no database, no key and no npm package at runtime.
 
 Screenshots: [`docs/home-light.png`](docs/home-light.png), [`docs/home-dark.png`](docs/home-dark.png), [`docs/home-phone.png`](docs/home-phone.png), [`docs/fuel-light.png`](docs/fuel-light.png) (crosshair and tooltip), [`docs/inflation-dark.png`](docs/inflation-dark.png), [`docs/ringgit-phone.png`](docs/ringgit-phone.png), [`docs/method.png`](docs/method.png).
 
@@ -40,84 +38,82 @@ Left out on purpose: the Overnight Policy Rate (not in the API's `interestrates`
 | 5. Draw | `assets/js/chart-core.js`, `render/*.mjs` | SVG line, bar and horizontal bar charts drawn at build time, so pages work without JavaScript; in the browser the same code redraws at the real width and adds the crosshair, tooltip and keyboard reading |
 | 6. Site | `site.mjs`, `feeds.mjs` | 13 pages, 28 CSV files, per-dataset JSON, `feed.json`, `latest.json`, `_headers`; then a check for broken links, inline code, CSP and size |
 
-## Install
+## Quick start
+
+Needs Node 22 or newer. No npm packages are needed to fetch or build. The data up to 24 November 2026 is committed, so the site builds without the network.
 
 ```bash
-git clone https://github.com/VinVirtual/malaysia-in-numbers
-cd malaysia-in-numbers
-./check_env.sh          # says how to fix anything missing
-npm ci                  # only for the browser test and screenshots (playwright-core)
+git clone https://github.com/VinVirtual/malaysia-in-numbers && cd malaysia-in-numbers
+./check_env.sh               # says how to fix anything missing
+./mnum site                  # data/ -> dist/, checked
+python3 -m http.server -d dist 8000   # open http://localhost:8000/
 ```
 
-Needs Node 22 or newer. No npm packages are needed to fetch or build.
-
-## Quick start
+More commands:
 
 ```bash
 ./mnum fetch                 # ask the API (8 requests, about 2 minutes), update data/
 ./mnum fetch --offline       # rebuild data/ from cached replies only, no network
 ./mnum fetch --only fuelprice,lfs_month
 ./mnum check                 # validate the committed data
-./mnum site                  # data/ -> dist/, checked
 npm test                     # unit tests, no network
-npm run test:e2e             # browser test of dist/ (needs Chrome)
+npm ci && npm run test:e2e   # browser test of dist/ (needs Chrome)
 npm run capture              # screenshots into docs/
 ```
 
-`MNUM_SITE_URL` sets the absolute URL used in the feed (default `https://malaysia-in-numbers.pages.dev/`). `MNUM_CHROME` points the browser test at a Chrome or Chromium binary.
+The site URL is used in the feed and in link previews. It defaults to `http://localhost:8000/` for local builds; set your own with the `MNUM_SITE_URL` environment variable (https, ending in `/`). `MNUM_CHROME` points the browser test at a Chrome or Chromium binary.
 
-## Automation and cost
+## Deploy your own
 
-[`.github/workflows/daily.yml`](.github/workflows/daily.yml) runs every day at 01:23 UTC (09:23 in Malaysia) and on manual dispatch. Rights are empty at the top and granted per job; every action is pinned by commit SHA.
+### GitHub Pages (built in)
+
+[`.github/workflows/deploy-pages.yml`](.github/workflows/deploy-pages.yml) fetches, commits what changed, builds the site and publishes it with `actions/deploy-pages`. In this repository it only runs when started by hand, so nothing is hosted from here. In your fork:
+
+1. Fork the repository (public forks get free Actions minutes).
+2. Settings, Pages, Source: **GitHub Actions**.
+3. Settings, Actions, General, Workflow permissions: **Read and write**, so the workflow can commit `data/`.
+4. In `deploy-pages.yml`, uncomment the two `schedule` lines (every day at 01:23 UTC, 09:23 in Malaysia) and push.
+5. Actions, deploy-pages, **Run workflow**.
+
+The site URL comes from GitHub Pages. For a custom domain, set the repository variable `MNUM_SITE_URL` (Settings, Secrets and variables, Actions, Variables), for example `https://data.example.org/`.
+
+Rights are empty at the top and granted per job; every action is pinned by commit SHA.
 
 | Job | Rights | When | What it does |
 |---|---|---|---|
 | `fetch` | `contents: read`, no stored credentials | every run | unit tests, fetch, validate, build the site; hands the data files on as an artifact if anything changed |
-| `commit` | `contents: write` | only if something changed | copies only `data/series/*.json` and `data/releases.jsonl`, validates, commits as the noreply identity, rebases, validates again, pushes |
-| `deploy` | `contents: read` | every day the fetch succeeded, or `deploy_only` | builds from `main` and uploads to Cloudflare Pages (so the edition date is today's, and a failed deploy is retried the next day); **if a Cloudflare secret is missing it logs a warning and skips**, and the data is still committed |
+| `commit` | `contents: write` | only if something changed | copies only `data/series/*.json` and `data/releases.jsonl`, validates, commits as `github-actions[bot]`, rebases, validates again, pushes |
+| `deploy` | `pages: write`, `id-token: write` | every day the fetch succeeded, or `deploy_only` | builds from the default branch and publishes to GitHub Pages, so the edition date is today's and a failed deploy is retried the next day |
 | `alert` | none | only if a dataset failed | fails the run after everything else has finished, so a partial failure is a red run and a GitHub email, not just a warning |
 
-Minutes: GitHub gives a private repository 2,000 free Actions minutes a month and bills each job rounded up to the minute. A live fetch takes about two minutes (8 requests 16 s apart: 115 s measured on 24 November 2026), so a normal day costs the fetch job (about 3 billed minutes) and the deploy job (1), and a day with a new release 1 more for the commit. Most datasets change once a month and fuel once a week, so expect roughly 30 × 4 + 15 × 1 ≈ **135 minutes a month**, about 7% of the free allowance. Every job has a timeout; even if every one ran to its limit every day the month would stay under 2,000 minutes. Commits made by the workflow do not trigger the test workflow (GitHub does not chain runs started by `GITHUB_TOKEN`).
+### Cloudflare Pages (alternative)
 
-### Measured
-
-Two manual runs of the daily workflow on GitHub on 24 November 2026 (no new figures that day, `CLOUDFLARE_API_TOKEN` not yet set):
-
-| Run | fetch job | deploy job | Billed minutes |
-|---|---|---|---|
-| 1 (first version, deploy only after a commit) | 2 min 2 s (8 requests, 365 KB, 114 s of fetching) | skipped | 3 |
-| 2 (current) | 2 min 2 s (113 s of fetching) | 10 s, skipped the upload with the warning | 3 + 1 = 4 |
-
-The test workflow took 1 min 10 s on its first push (2 billed minutes), and runs only on human pushes and pull requests.
-
-[`.github/workflows/test.yml`](.github/workflows/test.yml) runs on push and pull request: unit tests, data validation, site build and the browser test.
-
-## Hosting
-
-Static files on **Cloudflare Pages** (free plan), project `malaysia-in-numbers`, so the repository can stay private. `mnum site` writes a `_headers` file that Cloudflare turns into response headers: the Content-Security-Policy with `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`, and the feed and CSV media types.
-
-The daily workflow needs two repository secrets: `CLOUDFLARE_ACCOUNT_ID` (set) and `CLOUDFLARE_API_TOKEN` (an API token limited to Account › Cloudflare Pages › Edit; the one made for physical-ai-radar works). Deploying by hand:
+Cloudflare Pages also reads the `_headers` file the build writes, so the CSP is sent as a real header with `frame-ancestors 'none'`, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy` and the feed and CSV media types (GitHub Pages ignores `_headers`; the pages carry the CSP in a meta tag either way). By hand:
 
 ```bash
-./mnum site
-npx wrangler pages deploy dist --project-name malaysia-in-numbers --branch main
+MNUM_SITE_URL=https://<your-project>.pages.dev/ ./mnum site
+npx wrangler pages deploy dist --project-name <your-project> --branch main
 ```
 
-### Custom domain `data.lashvin.com`
+To run it on a schedule, replace the last three steps of the `deploy` job with [`cloudflare/wrangler-action`](https://github.com/cloudflare/wrangler-action) and `command: pages deploy dist --project-name=<your-project>`, drop `pages` and `id-token` from its rights, and add repository secrets `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` (a token with Account, Cloudflare Pages, Edit only).
 
-1. Cloudflare dashboard → Workers & Pages → `malaysia-in-numbers` → Custom domains → Set up a custom domain → `data.lashvin.com`. Because lashvin.com's DNS is not on Cloudflare, choose "My DNS provider"; Cloudflare then shows the CNAME to add.
-2. In Squarespace (Domains → lashvin.com → DNS settings) add a record: type `CNAME`, host `data`, value `malaysia-in-numbers.pages.dev`. Wait until Cloudflare shows the domain as Active (certificate issued).
-3. Set the repository variable `MNUM_SITE_URL` to `https://data.lashvin.com/` (Settings → Secrets and variables → Actions → Variables) and change `DEFAULT_SITE_URL` in `scripts/lib/config.mjs`, so the feed links to the new address.
+### Cost
+
+Actions minutes are free on public repositories. A private fork gets 2,000 a month, billed per job rounded up to the minute. A live fetch takes about two minutes (8 requests 16 s apart: 115 s measured on 24 November 2026), so a normal day costs the fetch job (about 3 billed minutes) and the deploy job (1), and a day with a new release 1 more for the commit: roughly **135 minutes a month**. Every job has a timeout; even if every one ran to its limit every day the month would stay under 2,000 minutes. Commits made by the workflow do not trigger the test workflow.
+
+The data.gov.my API needs no key and allows 4 requests a minute; a run makes 8, spaced 16 s apart.
+
+[`.github/workflows/test.yml`](.github/workflows/test.yml) runs on push and pull request: unit tests, data validation, site build and the browser test.
 
 ## Safety
 
 - Everything from the API is untrusted. Replies are checked before use; series keys are reduced to `[a-z0-9_]`; dataset files are validated against a schema before every build. Every value is HTML-escaped by default, SVG text is escaped by the chart engine, and CSV text cells that start with `= + - @` are defused.
-- Pages carry a strict CSP (`default-src 'none'`, scripts, styles and fonts from the site only, `connect-src 'none'`), as a `<meta>` tag and, on Cloudflare, as a header. No inline script or style, no CDN, fonts self-hosted. The build fails on an inline script, a `style` attribute, an event handler, a non-https link or a broken local link.
+- Pages carry a strict CSP (`default-src 'none'`, scripts, styles and fonts from the site only, `connect-src 'none'`), as a `<meta>` tag and, on hosts that read `_headers` (Cloudflare Pages, Netlify), as a header. No inline script or style, no CDN, fonts self-hosted. The build fails on an inline script, a `style` attribute, an event handler, a non-https link or a broken local link.
 - Files are written to a temporary name and renamed; symlinks on the way are refused; nothing is written outside the project.
 
 ## Tests
 
-124 tests: 112 unit tests (`node --test tests/*.test.mjs`, no network, against API replies recorded on 24 November 2026 and trimmed to their last 14 dates in [`tests/fixtures/`](tests/fixtures/)) and 12 browser tests (`tests/e2e/`). They cover building requests, checking and reshaping replies, the HTTP layer (host allow-list, redirects, size caps, timeouts, 429 handling, the 16 s spacing, budgets, cache, offline mode, symlinks), the stored files and release log (validation, revisions, a failing, shrinking or malformed reply keeping the last good file, the budget stopping a run, the CLI refusing to wipe folders), formats and changes, the chart engine (ticks, gaps, negative bars, labels, accessibility text, escaping), every chart of every topic, the built site (CSP, links, ids, 404, headers, feeds, CSV), the workflows (pins, rights, the deploy skip, the red run on partial failure, the append-only log, timeouts), and in Chrome: no errors or off-site requests on any page, charts redrawn at the shown width, keyboard reading and announcements, hover tooltip, CSV download, theme toggle, no sideways scroll at 360 px, landmarks and labels, WCAG AA text contrast in both themes, reduced motion, and the site without JavaScript.
+131 tests: 119 unit tests (`node --test tests/*.test.mjs`, no network, against API replies recorded on 24 November 2026 and trimmed to their last 14 dates in [`tests/fixtures/`](tests/fixtures/)) and 12 browser tests (`tests/e2e/`). They cover building requests, checking and reshaping replies, the HTTP layer (host allow-list, redirects, size caps, timeouts, 429 handling, the 16 s spacing, budgets, cache, offline mode, symlinks), the stored files and release log (validation, revisions, a failing, shrinking or malformed reply keeping the last good file, the budget stopping a run, the CLI refusing to wipe folders), formats and changes, the chart engine (ticks, gaps, negative bars, labels, accessibility text, escaping), every chart of every topic, the built site (CSP, links, ids, 404, headers, feeds, CSV), the workflows (pins, rights, the schedule off in this repository, the red run on partial failure, the append-only log, timeouts), and in Chrome: no errors or off-site requests on any page, charts redrawn at the shown width, keyboard reading and announcements, hover tooltip, CSV download, theme toggle, no sideways scroll at 360 px, landmarks and labels, WCAG AA text contrast in both themes, reduced motion, and the site without JavaScript.
 
 ## Limits
 
@@ -132,6 +128,10 @@ npx wrangler pages deploy dist --project-name malaysia-in-numbers --branch main
 - **Tested in Chromium only** (headless, phone and desktop widths, both themes). Node 24 locally, Node 22 in CI.
 - Some figures look surprising but are as published, for example exports of RM215.1 bn in September 2026, 54.5% above September 2025.
 
+## Contributing
+
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ## Licence
 
-Code: MIT (see [LICENSE](LICENSE)). Data: © the publishers, CC BY 4.0, via data.gov.my and OpenDOSM. Fonts: Bricolage Grotesque and IBM Plex Mono, SIL Open Font License 1.1 (texts in `assets/fonts/`). The HTTP, budget, cache and safe-write modules are adapted from the same author's physical-ai-radar project.
+Code: MIT ([`LICENSE`](LICENSE)), copyright Lashvin Manimaran. Data is not covered by the MIT licence: the figures in `data/`, `tests/fixtures/` and on the built site are © their publishers, CC BY 4.0, via data.gov.my and OpenDOSM (see [`DATA-LICENSE.md`](DATA-LICENSE.md)). Keep the attribution in the site footer if you publish your own copy. Fonts: Bricolage Grotesque and IBM Plex Mono, SIL Open Font License 1.1 (texts in `assets/fonts/`).

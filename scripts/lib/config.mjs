@@ -5,7 +5,10 @@
 
 export const SITE_TITLE = 'Malaysia in Numbers';
 export const SITE_TITLE_MS = 'Malaysia dalam Angka';
-export const DEFAULT_SITE_URL = 'https://malaysia-in-numbers.pages.dev/';
+// The address the site is published at, used in the feed and link previews. Set MNUM_SITE_URL
+// to your own https address when you deploy. The default suits a local build served with:
+// python3 -m http.server -d dist 8000
+export const DEFAULT_SITE_URL = 'http://localhost:8000/';
 export const REPO_URL = 'https://github.com/VinVirtual/malaysia-in-numbers';
 export const SCHEMA_VERSION = 1;
 
@@ -28,7 +31,7 @@ export const LIMITS = Object.freeze({
   rowLimit: 20_000,
 });
 
-export const USER_AGENT = 'malaysia-in-numbers/0.1 (static dashboard; +https://malaysia-in-numbers.pages.dev/)';
+export const USER_AGENT = `malaysia-in-numbers/0.1 (static dashboard; +${REPO_URL})`;
 
 const FROM = '2015-01-01';
 
